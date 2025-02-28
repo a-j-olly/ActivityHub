@@ -88,6 +88,47 @@ ng serve  # Launches the development server at http://localhost:4200
 5. Parental controls and safety features
 6. Deployment and production optimizations
 
+### Infrastructure Setup
+
+The AWS infrastructure for ActivityHub is managed using Terraform. The infrastructure includes:
+
+#### AWS Resources
+
+- **AWS Cognito User Pool**: For user authentication and authorization
+- **DynamoDB Table**: Single-table design named "ActivityHub" for storing application data
+- **S3 Buckets**:
+  - `activityhub-media-raw`: For storing raw media uploads (deleted after 24 hours)
+  - `activityhub-media-processed`: For storing processed media (with face blurring and moderation)
+- **API Gateway**: RESTful API for frontend communication
+- **AWS Lambda**: Serverless functions for backend processing
+- **IAM Roles and Policies**: For secure resource access
+
+#### Environment Management
+
+The infrastructure is configured to support both staging and production environments:
+
+- **Staging**: Used for development and testing
+- **Production**: Used for the live application
+
+#### Terraform Usage
+
+```bash
+cd terraform
+
+# Initialize Terraform
+terraform init
+
+# For staging environment
+terraform workspace select staging
+terraform apply -var-file=environments/staging.tfvars
+
+# For production environment
+terraform workspace select production
+terraform apply -var-file=environments/production.tfvars
+```
+
+For more details, see the [terraform/README.md](terraform/README.md) file.
+
 ### License
 
 [License information to be added]
