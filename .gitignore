@@ -1,2 +1,5 @@
 node_modules/
 venv/
+.terraform/
+.terraform.lock.hcl
+/terraform/modules/lambda/*.zip
