@@ -12,13 +12,11 @@ terraform {
     bucket = "activityhub-terraform-state-123"
     key    = "terraform.tfstate"
     region = "eu-west-2"
-    profile = "ajo-dev-admin"
   }
 }
 
 provider "aws" {
   region = var.aws_region
-  profile = "ajo-dev-admin"
 
   default_tags {
     tags = {

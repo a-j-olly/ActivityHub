@@ -18,17 +18,17 @@
 
 ## 2. AWS Infrastructure Setup with Terraform
 
-- [ ] **AWS Resources Provisioning**
-  - [ ] Write Terraform config to create an AWS Cognito User Pool.
-  - [ ] Provision a DynamoDB table (single-table design, name: `ActivityHub`).
-  - [ ] Create two S3 buckets:
-    - [ ] `activityhub-media-raw`
-    - [ ] `activityhub-media-processed`
-  - [ ] Set up AWS API Gateway for Lambda integration.
-  - [ ] (Optional) Add a placeholder for an AWS Lambda function.
-- [ ] **IAM & Environment Management**
-  - [ ] Create necessary IAM roles and policies for Lambda/API Gateway to access DynamoDB and S3.
-  - [ ] Configure Terraform for multiple environments (staging and production).
+- [*] **AWS Resources Provisioning**
+  - [*] Write Terraform config to create an AWS Cognito User Pool.
+  - [*] Provision a DynamoDB table (single-table design, name: `ActivityHub`).
+  - [*] Create two S3 buckets:
+    - [*] `activityhub-media-raw`
+    - [*] `activityhub-media-processed`
+  - [*] Set up AWS API Gateway for Lambda integration.
+  - [*] (Optional) Add a placeholder for an AWS Lambda function.
+- [*] **IAM & Environment Management**
+  - [*] Create necessary IAM roles and policies for Lambda/API Gateway to access DynamoDB and S3.
+  - [*] Configure Terraform for multiple environments (staging and production).
 
 ## 3. Flask Back-End Development
 
