@@ -5,11 +5,13 @@ Prompt 1: Project Setup & Environment Configuration
 You are tasked with setting up the initial project structure for ActivityHub. Create a new repository that will contain two main folders: "frontend" for the Angular application and "backend" for the Flask API. Within each folder, initialize the appropriate project scaffolding.
 
 For the backend:
+
 - Create a Python virtual environment.
 - Set up a minimal Flask project with a basic "app.py" file that includes a simple “Hello World” endpoint.
 - Add a requirements.txt with Flask and boto3.
 
 For the frontend:
+
 - Use Angular CLI to generate a new Angular project.
 - Create a basic routing module and a simple home component.
 
@@ -24,6 +26,7 @@ Prompt 2: AWS Infrastructure Setup with Terraform
 # Prompt 2: AWS Infrastructure Setup with Terraform
 
 Next, set up the AWS infrastructure using Terraform. Write Terraform configuration files that will provision the following resources:
+
 - AWS Cognito User Pool (for authentication).
 - A DynamoDB table using a single-table design (named "ActivityHub").
 - Two S3 buckets: one for raw media ("activityhub-media-raw") and one for processed media ("activityhub-media-processed").
@@ -39,6 +42,7 @@ Prompt 3: Flask Back-End Initialization
 # Prompt 3: Flask Back-End Initialization
 
 Now, focus on the backend. Expand your minimal Flask app into a structured API application. Create a Flask project with the following features:
+
 - Organize the project with a clear structure (e.g., separate folders for routes, models, and utilities).
 - Implement API endpoints for user registration and login:
   - POST /register: Accept user details and create a new user.
@@ -53,6 +57,7 @@ Prompt 4: DynamoDB Integration in Flask
 # Prompt 4: DynamoDB Integration in Flask
 
 Extend your Flask backend by integrating with DynamoDB. Using boto3, implement the following:
+
 - A module to abstract DynamoDB operations (e.g., a "database.py" utility) that provides functions for CRUD operations on your single-table design.
 - Enhance the user registration endpoint (/register) to store new user data in DynamoDB using the appropriate partition key (e.g., USER#<userId>) and sort key.
 - Create a GET /user/<userId> endpoint that retrieves user profile details from DynamoDB.
@@ -64,12 +69,27 @@ Prompt 5: Angular Front-End Initialization
 # Prompt 5: Angular Front-End Initialization
 
 Now, develop the initial front-end components in your Angular project:
+
 - Create a login component with a simple form (email and password) and a registration component.
 - Set up an Angular service (e.g., AuthService) that will handle API calls for registration and login.
 - Configure Angular routing so that users can navigate between the login, registration, and a basic home/dashboard component.
 - Wire the login form to call the backend login endpoint and handle the returned JWT token (store it securely, e.g., in memory or in HTTPOnly cookies if possible).
 
 Ensure that each Angular component is connected to the AuthService, and that navigation between pages works properly.
+
+# Prompt 5.1: Angular Unit Tests
+
+Before continuing with development, please produce unit tests for the Angular frontend. Output ".spec" files for each of the classes in the application. Please follow Angular best practices in unit testing.:
+
+- Use Karma/Jasmine and the TestBed
+- Use Shallow Testing When Possible
+- Mock Child Components and Dependencies
+- Test Reactive Forms
+- Follow the Arrange-Act-Assert Pattern
+- Test DOM Interactions Carefully
+- Reuse When Possible
+
+Do not produce E2E tests at this stage.
 
 Prompt 6: AWS Cognito Integration for Authentication
 
@@ -78,10 +98,12 @@ Prompt 6: AWS Cognito Integration for Authentication
 Integrate AWS Cognito into both your Flask backend and Angular front-end for user authentication:
 
 For the backend:
+
 - Implement a middleware (or decorator) that verifies the JWT tokens issued by AWS Cognito on protected endpoints.
 - Modify the /login endpoint (if needed) so that it can validate the user against Cognito and issue/verify tokens accordingly.
 
 For the frontend:
+
 - Use AWS Amplify (or the AWS SDK for JavaScript) to connect to your Cognito User Pool.
 - Update your AuthService to leverage AWS Cognito for registration and login, ensuring that the JWT token is properly managed.
 - Ensure that once logged in, the Angular app stores the token securely and includes it in subsequent API calls.
@@ -93,6 +115,7 @@ Prompt 7: Challenge & Submission Endpoints in Flask
 # Prompt 7: Challenge & Submission Endpoints in Flask
 
 Expand your Flask backend by adding endpoints for the core features of ActivityHub:
+
 - Create endpoints to handle challenges:
   - GET /challenges: Retrieve a list of active challenges.
   - GET /challenges/<challengeId>: Retrieve details of a specific challenge.
@@ -114,6 +137,7 @@ Prompt 8: Media Processing & Content Moderation Integration
 # Prompt 8: Media Processing & Content Moderation Integration
 
 Develop the media processing pipeline that will handle user-submitted photos/videos:
+
 - Create an AWS Lambda function (in Python) that is triggered by an S3 event when a new file is uploaded to the "activityhub-media-raw" bucket.
 - Integrate Amazon Rekognition within this Lambda to scan the media for inappropriate content.
 - Use OpenCV (packaged as a Lambda layer) within the same Lambda to perform face detection and blurring.
@@ -127,6 +151,7 @@ Prompt 9: Leaderboard & Real-Time Updates using Redis
 # Prompt 9: Leaderboard & Real-Time Updates using Redis
 
 Implement the leaderboard functionality using Redis for real-time performance:
+
 - In your Flask backend, create endpoints for:
   - GET /leaderboards/<challengeId>: Retrieve the leaderboard for a specific challenge.
   - GET /leaderboards/overall: Retrieve the overall leaderboard across challenges.
@@ -140,6 +165,7 @@ Prompt 10: Integration Testing and Final Wiring
 # Prompt 10: Integration Testing and Final Wiring
 
 Bring all the pieces together and ensure the system works as a cohesive whole:
+
 - Write integration tests (using pytest for Flask and Postman/Insomnia for API endpoints) that simulate a complete user workflow: registration, login, challenge submission, moderation, parental approval, and leaderboard updates.
 - Create end-to-end tests using Cypress for the Angular front-end. These tests should simulate a user logging in, submitting a challenge, and viewing the updated leaderboard.
 - Wire the entire deployment pipeline using AWS SAM for Lambda functions and Terraform for infrastructure deployment. Ensure that environment variables and configurations are correctly passed from your local setup to the cloud environment.

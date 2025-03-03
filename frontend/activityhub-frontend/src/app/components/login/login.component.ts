@@ -22,14 +22,14 @@ export class LoginComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private authService: AuthService
-  ) {
+  ) {}
+
+  ngOnInit(): void {
     // Redirect to home if already logged in
     if (this.authService.isLoggedIn()) {
       this.router.navigate(['/home']);
     }
-  }
 
-  ngOnInit(): void {
     // Initialize form
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],

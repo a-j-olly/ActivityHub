@@ -21,14 +21,14 @@ export class RegisterComponent implements OnInit {
     private formBuilder: FormBuilder,
     private router: Router,
     private authService: AuthService
-  ) {
+  ) {}
+
+  ngOnInit(): void {
     // Redirect to home if already logged in
     if (this.authService.isLoggedIn()) {
       this.router.navigate(['/home']);
     }
-  }
 
-  ngOnInit(): void {
     // Initialize the registration form
     this.registerForm = this.formBuilder.group(
       {

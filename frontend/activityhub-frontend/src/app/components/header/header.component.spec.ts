@@ -1,12 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { By } from '@angular/platform-browser';
 import { BehaviorSubject } from 'rxjs';
 
-import { HomeComponent } from './home.component';
+import { HeaderComponent } from './header.component';
 import { AuthService, User } from '../../services/auth.service';
 
-describe('HomeComponent', () => {
-  let component: HomeComponent;
-  let fixture: ComponentFixture<HomeComponent>;
+describe('HeaderComponent', () => {
+  let component: HeaderComponent;
+  let fixture: ComponentFixture<HeaderComponent>;
   let authServiceSpy: jasmine.SpyObj<AuthService>;
   let currentUserSubject: BehaviorSubject<User | null>;
 
@@ -39,7 +41,8 @@ describe('HomeComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      declarations: [ HomeComponent ],
+      declarations: [ HeaderComponent ],
+      imports: [ RouterTestingModule ],
       providers: [
         { provide: AuthService, useValue: spy }
       ]
@@ -50,7 +53,7 @@ describe('HomeComponent', () => {
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(HomeComponent);
+    fixture = TestBed.createComponent(HeaderComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -81,35 +84,55 @@ describe('HomeComponent', () => {
   });
 
   // DOM Testing
-  it('should display parent-specific content when user is a parent', () => {
+  it('should display user name when user is logged in', () => {
     // Arrange
     currentUserSubject.next(parentUser);
     fixture.detectChanges();
     
     // Assert
-    const parentDashboard = fixture.nativeElement.querySelector('h3');
-    expect(parentDashboard.textContent).toContain('Parent Dashboard');
+    const userInfo = fixture.nativeElement.querySelector('.user-info');
+    expect(userInfo.textContent).toContain('Parent User');
   });
 
-  it('should display child-specific content when user is a child', () => {
-    // Arrange
-    currentUserSubject.next(childUser);
-    fixture.detectChanges();
-    
-    // Assert
-    const childDashboard = fixture.nativeElement.querySelector('h3');
-    expect(childDashboard.textContent).toContain('Child Dashboard');
-  });
-
-  it('should display warning message when no user is logged in', () => {
+  it('should show login/register buttons when no user is logged in', () => {
     // Arrange
     currentUserSubject.next(null);
     fixture.detectChanges();
     
     // Assert
-    const warningMessage = fixture.nativeElement.querySelector('.alert-warning');
-    expect(warningMessage).toBeTruthy();
-    expect(warningMessage.textContent).toContain('You are not logged in');
+    const loginButton = fixture.debugElement.query(By.css('a.btn-primary'));
+    const registerButton = fixture.debugElement.query(By.css('a.btn-outline'));
+    
+    expect(loginButton).toBeTruthy();
+    expect(loginButton.nativeElement.textContent).toContain('Login');
+    expect(registerButton).toBeTruthy();
+    expect(registerButton.nativeElement.textContent).toContain('Register');
+  });
+
+  it('should show parent-specific links when parent is logged in', () => {
+    // Arrange
+    currentUserSubject.next(parentUser);
+    fixture.detectChanges();
+    
+    // Assert
+    const navLinks = fixture.debugElement.queryAll(By.css('.nav-links a'));
+    const linkHrefs = navLinks.map(link => link.properties['href']);
+    
+    expect(linkHrefs).toContain('http://localhost:9876/children');
+    expect(linkHrefs).not.toContain('http://localhost:9876/submissions');
+  });
+
+  it('should show child-specific links when child is logged in', () => {
+    // Arrange
+    currentUserSubject.next(childUser);
+    fixture.detectChanges();
+    
+    // Assert
+    const navLinks = fixture.debugElement.queryAll(By.css('.nav-links a'));
+    const linkHrefs = navLinks.map(link => link.properties['href']);
+    
+    expect(linkHrefs).toContain('http://localhost:9876/submissions');
+    expect(linkHrefs).not.toContain('http://localhost:9876/children');
   });
 
   it('should show logout button when user is logged in', () => {
@@ -118,18 +141,8 @@ describe('HomeComponent', () => {
     fixture.detectChanges();
     
     // Assert
-    const logoutButton = fixture.nativeElement.querySelector('.btn-danger');
+    const logoutButton = fixture.debugElement.query(By.css('button.btn-outline'));
     expect(logoutButton).toBeTruthy();
-    expect(logoutButton.textContent).toContain('Logout');
-  });
-
-  it('should not show logout button when no user is logged in', () => {
-    // Arrange
-    currentUserSubject.next(null);
-    fixture.detectChanges();
-    
-    // Assert
-    const logoutButton = fixture.nativeElement.querySelector('.btn-danger');
-    expect(logoutButton).toBeFalsy();
+    expect(logoutButton.nativeElement.textContent).toContain('Logout');
   });
 });
