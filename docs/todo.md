@@ -46,27 +46,27 @@
 
 ## 4. DynamoDB Integration in Flask
 
-- [ ] **DynamoDB Utility Module**
-  - [ ] Create a module (e.g., `database.py`) for CRUD operations.
-- [ ] **Enhance Endpoints**
-  - [ ] Update `/register` to save new user data in DynamoDB.
-  - [ ] Implement `GET /user/<userId>` to retrieve user profiles from DynamoDB.
-- [ ] **Testing**
-  - [ ] Test endpoints with a local/test DynamoDB instance.
+- [*] **DynamoDB Utility Module**
+  - [*] Create a module (e.g., `database.py`) for CRUD operations.
+- [*] **Enhance Endpoints**
+  - [*] Update `/register` to save new user data in DynamoDB.
+  - [*] Implement `GET /user/<userId>` to retrieve user profiles from DynamoDB.
+- [-] **Testing**
+  - [-] Test endpoints with a local/test DynamoDB instance.
 
 ## 5. Angular Front-End Development
 
-- [ ] **Core Components**
-  - [ ] Create a login component with email/password form.
-  - [ ] Create a registration component.
-  - [ ] Create a home/dashboard component.
-- [ ] **Service Integration**
-  - [ ] Develop an `AuthService` to handle registration and login API calls.
-- [ ] **Routing**
-  - [ ] Set up Angular routing for navigation between login, registration, and home.
-- [ ] **JWT Handling**
-  - [ ] Integrate login form to call backend `/login` endpoint.
-  - [ ] Securely store and manage JWT tokens.
+- [*] **Core Components**
+  - [*] Create a login component with email/password form.
+  - [*] Create a registration component.
+  - [*] Create a home/dashboard component.
+- [*] **Service Integration**
+  - [*] Develop an `AuthService` to handle registration and login API calls.
+- [*] **Routing**
+  - [*] Set up Angular routing for navigation between login, registration, and home.
+- [*] **JWT Handling**
+  - [*] Integrate login form to call backend `/login` endpoint.
+  - [*] Securely store and manage JWT tokens.
 
 ## 6. AWS Cognito Integration for Authentication
 

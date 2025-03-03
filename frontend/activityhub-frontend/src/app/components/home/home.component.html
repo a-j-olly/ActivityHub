@@ -1,14 +1,50 @@
-<div class="app-container">
-  <header>
-    <h1>ActivityHub</h1>
-    <nav>
-      <a routerLink="/home" routerLinkActive="active">Home</a>
-    </nav>
-  </header>
-  <main>
-    <router-outlet></router-outlet>
-  </main>
-  <footer>
-    <p>&copy; 2025 ActivityHub - Encouraging outdoor activities for children</p>
-  </footer>
+<div class="home-container">
+  <div class="welcome-section">
+    <h1>Welcome to ActivityHub!</h1>
+    <p *ngIf="currentUser">Hello, {{ currentUser.name }}!</p>
+
+    <div class="dashboard-card">
+      <h2>Your Dashboard</h2>
+
+      <div *ngIf="currentUser">
+        <div class="user-info">
+          <p><strong>Email:</strong> {{ currentUser.email }}</p>
+          <p><strong>Role:</strong> {{ currentUser.role | titlecase }}</p>
+        </div>
+
+        <div class="dashboard-content">
+          <div *ngIf="currentUser.role === 'parent'">
+            <h3>Parent Dashboard</h3>
+            <p>As a parent, you can:</p>
+            <ul>
+              <li>Monitor your children's activities</li>
+              <li>Approve or reject activity submissions</li>
+              <li>Set safety limits for your children</li>
+            </ul>
+            <!-- More parent-specific content will be added here -->
+          </div>
+
+          <div *ngIf="currentUser.role === 'child'">
+            <h3>Child Dashboard</h3>
+            <p>As a child, you can:</p>
+            <ul>
+              <li>View available challenges</li>
+              <li>Submit your completed activities</li>
+              <li>Check the leaderboard</li>
+            </ul>
+            <!-- More child-specific content will be added here -->
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!currentUser" class="alert alert-warning">
+        You are not logged in. Please <a routerLink="/login">log in</a> to
+        access your dashboard.
+      </div>
+    </div>
+
+    <div class="action-buttons" *ngIf="currentUser">
+      <button class="btn btn-danger" (click)="logout()">Logout</button>
+    </div>
+  </div>
 </div>
