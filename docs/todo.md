@@ -32,17 +32,17 @@
 
 ## 3. Flask Back-End Development
 
-- [ ] **Project Structure**
-  - [ ] Organize backend folders: routes, models, utilities.
-  - [ ] Create a `config.py` for environment variables and AWS settings.
-- [ ] **User Management Endpoints**
-  - [ ] Implement `POST /register` for user registration.
-  - [ ] Implement `POST /login` for user authentication.
-  - [ ] Create a JWT token issuance mechanism.
-- [ ] **Error Handling**
-  - [ ] Add error handling for 400, 401, 403, 404, and 500 status codes.
-- [ ] **Wiring**
-  - [ ] Wire all routes in the main app entry point.
+- [*] **Project Structure**
+  - [*] Organize backend folders: routes, models, utilities.
+  - [*] Create a `config.py` for environment variables and AWS settings.
+- [*] **User Management Endpoints**
+  - [*] Implement `POST /register` for user registration.
+  - [*] Implement `POST /login` for user authentication.
+  - [*] Create a JWT token issuance mechanism.
+- [*] **Error Handling**
+  - [*] Add error handling for 400, 401, 403, 404, and 500 status codes.
+- [*] **Wiring**
+  - [*] Wire all routes in the main app entry point.
 
 ## 4. DynamoDB Integration in Flask
 

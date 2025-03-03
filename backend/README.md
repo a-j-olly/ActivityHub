@@ -118,6 +118,80 @@ backend/
   }
   ```
 
+### User Management
+
+#### Get user profile
+- **URL**: `/api/users/{user_id}`
+- **Method**: `GET`
+- **Headers**: `Authorization: Bearer {jwt-token}`
+- **Description**: Get a user's profile by ID. Users can only access their own profile or profiles of their children (for parents).
+- **Response**:
+  ```json
+  {
+    "user": {
+      "user_id": "uuid",
+      "email": "user@example.com",
+      "name": "Full Name",
+      "role": "parent",
+      "created_at": 1645123456
+    }
+  }
+  ```
+
+#### Update user profile
+- **URL**: `/api/users/{user_id}`
+- **Method**: `PUT`
+- **Headers**: `Authorization: Bearer {jwt-token}`
+- **Description**: Update a user's profile. Users can only update their own profile or profiles of their children (for parents).
+- **Request Body**:
+  ```json
+  {
+    "name": "Updated Name"
+    // Any other fields to update
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "message": "User profile updated successfully",
+    "user": {
+      "user_id": "uuid",
+      "email": "user@example.com",
+      "name": "Updated Name",
+      "role": "parent",
+      "created_at": 1645123456,
+      "updated_at": 1645123789
+    }
+  }
+  ```
+
+#### Get children (for parents)
+- **URL**: `/api/users/children`
+- **Method**: `GET`
+- **Headers**: `Authorization: Bearer {jwt-token}`
+- **Description**: Get all children for the authenticated parent. Only accessible to users with the parent role.
+- **Response**:
+  ```json
+  {
+    "children": [
+      {
+        "user_id": "uuid1",
+        "email": "child1@example.com",
+        "name": "Child Name 1",
+        "role": "child",
+        "created_at": 1645123456
+      },
+      {
+        "user_id": "uuid2",
+        "email": "child2@example.com",
+        "name": "Child Name 2",
+        "role": "child",
+        "created_at": 1645123789
+      }
+    ]
+  }
+  ```
+
 ## Error Handling
 
 The API returns standardized error responses in the following format:

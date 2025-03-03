@@ -1,18 +1,28 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from decimal import Decimal
+import os
 import logging
 import json
+from decimal import Decimal
+from flask.json.provider import JSONProvider
+
+# Custom JSON Provider to handle Decimal values
+class CustomJSONProvider(JSONProvider):
+    def dumps(self, obj, **kwargs):
+        return json.dumps(obj, **kwargs, default=self._default)
+    
+    def loads(self, s, **kwargs):
+        return json.loads(s, **kwargs)
+    
+    def _default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 # Import error handlers and routes
 from utils.errors import register_error_handlers
 from routes.auth import auth_bp
-
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Decimal):
-            return float(obj)
-        return super().default(obj)
+from routes.users import users_bp
 
 def create_app(config_object='config'):
     """
@@ -30,21 +40,22 @@ def create_app(config_object='config'):
     # Load configuration
     app.config.from_object(config_object)
     
+    # Register custom JSON provider
+    app.json = CustomJSONProvider(app)
+    
     # Configure logging
     if not app.debug:
         logging.basicConfig(level=logging.INFO)
     
     # Enable CORS
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app)
     
     # Register error handlers
     register_error_handlers(app)
     
     # Register blueprints
     app.register_blueprint(auth_bp)
-    
-    # Configure JSON encoder to handle Decimal objects
-    app.json_encoder = CustomJSONEncoder
+    app.register_blueprint(users_bp)
     
     # Root endpoint
     @app.route('/')

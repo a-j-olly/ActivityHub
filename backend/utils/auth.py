@@ -56,9 +56,16 @@ def generate_jwt_token(user_id, role):
         'exp': datetime.utcnow() + current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
     }
     
-    token = jwt.encode(payload, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
+    token = jwt.encode(
+        payload,
+        current_app.config['JWT_SECRET_KEY'],
+        algorithm='HS256'
+    )
+    
+    # Ensure the token is returned as a string, not bytes
     if isinstance(token, bytes):
         return token.decode('utf-8')
+    
     return token
 
 def validate_jwt_token(token):
