@@ -91,6 +91,10 @@ Before continuing with development, please produce unit tests for the Angular fr
 
 Do not produce E2E tests at this stage.
 
+# Prompt 5.2: Python Unit Tests
+
+Produce unit tests for the flask (v2.3.x) backend and output them as files. Use pytest and follow best practices.
+
 Prompt 6: AWS Cognito Integration for Authentication
 
 # Prompt 6: AWS Cognito Integration for Authentication
