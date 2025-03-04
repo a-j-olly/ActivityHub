@@ -4,3 +4,7 @@ venv/
 .terraform.lock.hcl
 /terraform/modules/lambda/*.zip
 __pycache__
+.coverage
+.pytest_cache
+htmlcov/
+digest.txt

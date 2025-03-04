@@ -5,6 +5,10 @@ import logging
 import json
 from decimal import Decimal
 from flask.json.provider import JSONProvider
+from config import config_by_name
+from utils.errors import register_error_handlers
+from routes.auth import auth_bp
+from routes.users import users_bp
 
 # Custom JSON Provider to handle Decimal values
 class CustomJSONProvider(JSONProvider):
@@ -19,17 +23,14 @@ class CustomJSONProvider(JSONProvider):
             return float(obj)
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
-# Import error handlers and routes
-from utils.errors import register_error_handlers
-from routes.auth import auth_bp
-from routes.users import users_bp
-
-def create_app(config_object='config'):
+def create_app(config_name='default'):
     """
-    Create and configure a Flask application instance
+    Create and configure a Flask application instance.
     
     Args:
-        config_object (str, optional): The configuration object to use. Defaults to 'config'.
+        config_name (str, optional): The configuration environment to use.
+                                     One of 'development', 'testing', 'production', 'default'.
+                                     Defaults to 'default'.
     
     Returns:
         Flask: Configured Flask application
@@ -37,8 +38,8 @@ def create_app(config_object='config'):
     # Create Flask app
     app = Flask(__name__)
     
-    # Load configuration
-    app.config.from_object(config_object)
+    # Load configuration based on config_name
+    app.config.from_object(config_by_name[config_name])
     
     # Register custom JSON provider
     app.json = CustomJSONProvider(app)
@@ -76,7 +77,8 @@ def create_app(config_object='config'):
     return app
 
 # Create the application instance
-app = create_app()
-
 if __name__ == '__main__':
+    # Determine which configuration to use based on environment variable
+    env = os.environ.get('FLASK_ENV', 'development')
+    app = create_app(env)
     app.run(debug=app.config['DEBUG'], host='0.0.0.0')

@@ -1,5 +1,4 @@
-from flask import jsonify
-import config
+from flask import jsonify, current_app
 
 def error_response(error_type, message=None, status_code=None):
     """
@@ -25,9 +24,11 @@ def error_response(error_type, message=None, status_code=None):
     if status_code is None:
         status_code = error_types.get(error_type, 500)
     
-    # Get message from config if not provided
+    # Get message from Flask app config if not provided
     if message is None:
-        message = config.ERROR_MESSAGES.get(error_type, 'An error occurred')
+        # Get the error messages from current app's config
+        error_messages = current_app.config.get('ERROR_MESSAGES', {})
+        message = error_messages.get(error_type, 'An error occurred')
     
     response = {
         'error': error_type,
