@@ -7,7 +7,7 @@ import { AuthService, User } from '../../services/auth.service';
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let mockAuthService: Partial<AuthService>;
   let currentUserSubject: BehaviorSubject<User | null>;
 
   // Sample user data
@@ -31,22 +31,18 @@ describe('HomeComponent', () => {
     // Create a mock currentUser observable
     currentUserSubject = new BehaviorSubject<User | null>(null);
     
-    // Create AuthService spy with the methods we'll use
-    const spy = jasmine.createSpyObj('AuthService', ['logout']);
-    // Set up the currentUser property to use our mock subject
-    Object.defineProperty(spy, 'currentUser', {
-      get: () => currentUserSubject.asObservable()
-    });
+    // Create AuthService mock with the methods we'll use
+    mockAuthService = {
+      logout: jest.fn(),
+      currentUser: currentUserSubject.asObservable()
+    };
 
     await TestBed.configureTestingModule({
-      declarations: [ HomeComponent ],
+      declarations: [HomeComponent],
       providers: [
-        { provide: AuthService, useValue: spy }
+        { provide: AuthService, useValue: mockAuthService }
       ]
-    })
-    .compileComponents();
-
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    }).compileComponents();
   });
 
   beforeEach(() => {
@@ -77,7 +73,7 @@ describe('HomeComponent', () => {
     component.logout();
     
     // Assert
-    expect(authServiceSpy.logout).toHaveBeenCalled();
+    expect(mockAuthService.logout).toHaveBeenCalled();
   });
 
   // DOM Testing

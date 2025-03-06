@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
-from models.user import User
+import boto3
+from botocore.exceptions import ClientError
+from werkzeug.exceptions import BadRequest, Unauthorized
 from utils.errors import error_response
 import re
 
@@ -9,7 +11,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api')
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """
-    Register a new user
+    Register a new user with AWS Cognito
     
     JSON Body:
         email (str): User's email
@@ -41,11 +43,6 @@ def register():
     if len(data['password']) < 8:
         return error_response('BAD_REQUEST', "Password must be at least 8 characters long")
     
-    # Check if user already exists
-    existing_user = User.get_by_email(data['email'])
-    if existing_user:
-        return error_response('BAD_REQUEST', "User with this email already exists")
-    
     # Get optional fields
     role = data.get('role', 'child')
     parent_id = data.get('parent_id')
@@ -59,32 +56,83 @@ def register():
     if role == 'child' and not parent_id:
         return error_response('BAD_REQUEST', "Parent ID is required for child users")
     
-    # Create the user
+    # Initialize Cognito client
+    client = boto3.client('cognito-idp', 
+                         region_name=current_app.config['COGNITO_REGION'])
+    
     try:
-        user = User.create(data['email'], data['name'], data['password'], role, parent_id)
+        # Register the user in Cognito
+        response = client.sign_up(
+            ClientId=current_app.config['COGNITO_APP_CLIENT_ID'],
+            Username=data['email'],
+            Password=data['password'],
+            UserAttributes=[
+                {
+                    'Name': 'email',
+                    'Value': data['email']
+                },
+                {
+                    'Name': 'name',
+                    'Value': data['name']
+                },
+                {
+                    'Name': 'custom:role',
+                    'Value': role
+                }
+            ]
+        )
+        
+        user_id = response['UserSub']
+        
+        # If the user is a child, add the parent ID as a custom attribute
+        if role == 'child' and parent_id:
+            client.admin_update_user_attributes(
+                UserPoolId=current_app.config['COGNITO_USER_POOL_ID'],
+                Username=data['email'],
+                UserAttributes=[
+                    {
+                        'Name': 'custom:parentId',
+                        'Value': parent_id
+                    }
+                ]
+            )
         
         # Return success response
+        user_data = {
+            'user_id': user_id,
+            'email': data['email'],
+            'name': data['name'],
+            'role': role
+        }
+        if role == 'child' and parent_id:
+            user_data['parent_id'] = parent_id
+            
         return jsonify({
             'message': 'User registered successfully',
-            'user': user
+            'user': user_data
         }), 201
-    except ValueError as e:
-        return error_response('BAD_REQUEST', str(e))
-    except Exception as e:
-        current_app.logger.error(f"Error registering user: {str(e)}")
-        return error_response('SERVER_ERROR', "Error registering user")
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', '')
+        if error_code == 'UsernameExistsException':
+            return error_response('BAD_REQUEST', "User with this email already exists")
+        elif error_code == 'InvalidPasswordException':
+            return error_response('BAD_REQUEST', str(e))
+        else:
+            current_app.logger.error(f"Error registering user: {str(e)}")
+            return error_response('SERVER_ERROR', "Error registering user")
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """
-    Authenticate a user and return a JWT token
+    Authenticate a user with AWS Cognito and return JWT tokens
     
     JSON Body:
         email (str): User's email
         password (str): User's password
     
     Returns:
-        JSON: User data and JWT token
+        JSON: User data and JWT tokens
     """
     # Get request data
     data = request.get_json(silent=True)
@@ -97,16 +145,114 @@ def login():
         if field not in data:
             return error_response('BAD_REQUEST', f"Missing required field: {field}")
     
-    # Authenticate the user
-    user, token = User.authenticate(data['email'], data['password'])
+    # Initialize Cognito client
+    client = boto3.client('cognito-idp', 
+                         region_name=current_app.config['COGNITO_REGION'])
     
-    # Check if authentication was successful
-    if not user or not token:
-        return error_response('UNAUTHORIZED', "Invalid email or password")
+    try:
+        # Authenticate the user
+        response = client.initiate_auth(
+            ClientId=current_app.config['COGNITO_APP_CLIENT_ID'],
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': data['email'],
+                'PASSWORD': data['password']
+            }
+        )
+        
+        # Get tokens from the response
+        tokens = response['AuthenticationResult']
+        
+        # Get the user's attributes
+        user_response = client.get_user(
+            AccessToken=tokens['AccessToken']
+        )
+        
+        # Extract user data from attributes
+        user_data = {
+            'user_id': None,
+            'email': data['email'],
+            'name': None,
+            'role': None
+        }
+        
+        for attr in user_response['UserAttributes']:
+            if attr['Name'] == 'sub':
+                user_data['user_id'] = attr['Value']
+            elif attr['Name'] == 'name':
+                user_data['name'] = attr['Value']
+            elif attr['Name'] == 'custom:role':
+                user_data['role'] = attr['Value']
+            elif attr['Name'] == 'custom:parentId' and user_data['role'] == 'child':
+                user_data['parent_id'] = attr['Value']
+        
+        # Return success response with tokens
+        return jsonify({
+            'message': 'Login successful',
+            'user': user_data,
+            'tokens': {
+                'id_token': tokens['IdToken'],
+                'access_token': tokens['AccessToken'],
+                'refresh_token': tokens['RefreshToken'],
+                'expires_in': tokens['ExpiresIn']
+            }
+        })
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', '')
+        if error_code in ['NotAuthorizedException', 'UserNotFoundException']:
+            return error_response('UNAUTHORIZED', "Invalid email or password")
+        else:
+            current_app.logger.error(f"Error during login: {str(e)}")
+            return error_response('SERVER_ERROR', "Error during login")
+
+@auth_bp.route('/refresh-token', methods=['POST'])
+def refresh_token():
+    """
+    Refresh the JWT token using the refresh token
     
-    # Return success response with token
-    return jsonify({
-        'message': 'Login successful',
-        'user': user,
-        'token': token
-    })
+    JSON Body:
+        refresh_token (str): Refresh token
+    
+    Returns:
+        JSON: New JWT tokens
+    """
+    # Get request data
+    data = request.get_json(silent=True)
+    if not data or 'refresh_token' not in data:
+        return error_response('BAD_REQUEST', "Refresh token is required")
+    
+    # Initialize Cognito client
+    client = boto3.client('cognito-idp', 
+                         region_name=current_app.config['COGNITO_REGION'])
+    
+    try:
+        # Refresh the token
+        response = client.initiate_auth(
+            ClientId=current_app.config['COGNITO_APP_CLIENT_ID'],
+            AuthFlow='REFRESH_TOKEN_AUTH',
+            AuthParameters={
+                'REFRESH_TOKEN': data['refresh_token']
+            }
+        )
+        
+        # Get tokens from the response
+        tokens = response['AuthenticationResult']
+        
+        # Return success response with tokens
+        return jsonify({
+            'message': 'Token refreshed successfully',
+            'tokens': {
+                'id_token': tokens['IdToken'],
+                'access_token': tokens['AccessToken'],
+                'expires_in': tokens['ExpiresIn']
+            }
+        })
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', '')
+        if error_code == 'NotAuthorizedException':
+            return error_response('UNAUTHORIZED', "Invalid or expired refresh token")
+        else:
+            current_app.logger.error(f"Error refreshing token: {str(e)}")
+            return error_response('SERVER_ERROR', "Error refreshing token")

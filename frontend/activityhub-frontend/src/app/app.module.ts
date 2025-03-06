@@ -13,6 +13,7 @@ import { HeaderComponent } from './components/header/header.component';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { AuthService } from './services/auth.service';
 import { AuthGuard } from './guards/auth.guard';
+import { AmplifyService } from './services/amplify.service';
 
 @NgModule({
   declarations: [
@@ -32,6 +33,7 @@ import { AuthGuard } from './guards/auth.guard';
   providers: [
     AuthService,
     AuthGuard,
+    AmplifyService,
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
   ],
   bootstrap: [AppComponent],

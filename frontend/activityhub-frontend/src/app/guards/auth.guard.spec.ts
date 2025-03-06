@@ -12,26 +12,25 @@ import { AuthService } from '../services/auth.service';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
-  let authService: jasmine.SpyObj<AuthService>;
+  let mockAuthService: Partial<AuthService>;
   let router: Router;
 
   beforeEach(() => {
     // Create AuthService spy with the methods we'll use
-    const authServiceSpy = jasmine.createSpyObj('AuthService', [
-      'isLoggedIn',
-      'hasRole',
-    ]);
+    mockAuthService = {
+      isLoggedIn: jest.fn(),
+      hasRole: jest.fn()
+    };
 
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
       providers: [
         AuthGuard,
-        { provide: AuthService, useValue: authServiceSpy },
+        { provide: AuthService, useValue: mockAuthService },
       ],
     });
 
     guard = TestBed.inject(AuthGuard);
-    authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     router = TestBed.inject(Router);
   });
 
@@ -41,7 +40,7 @@ describe('AuthGuard', () => {
 
   it('should allow access when user is logged in and no role is required', () => {
     // Arrange
-    authService.isLoggedIn.and.returnValue(true);
+    jest.spyOn(mockAuthService, 'isLoggedIn').mockReturnValue(true);
     const route = new ActivatedRouteSnapshot();
     route.data = {};
 
@@ -52,13 +51,13 @@ describe('AuthGuard', () => {
 
     // Assert
     expect(result).toBe(true);
-    expect(authService.isLoggedIn).toHaveBeenCalled();
+    expect(mockAuthService.isLoggedIn).toHaveBeenCalled();
   });
 
   it('should allow access when user is logged in and has the required role', () => {
     // Arrange
-    authService.isLoggedIn.and.returnValue(true);
-    authService.hasRole.and.returnValue(true);
+    jest.spyOn(mockAuthService, 'isLoggedIn').mockReturnValue(true);
+    jest.spyOn(mockAuthService, 'hasRole').mockReturnValue(true);
 
     const route = new ActivatedRouteSnapshot();
     route.data = { role: 'parent' };
@@ -70,17 +69,17 @@ describe('AuthGuard', () => {
 
     // Assert
     expect(result).toBe(true);
-    expect(authService.isLoggedIn).toHaveBeenCalled();
-    expect(authService.hasRole).toHaveBeenCalledWith('parent');
+    expect(mockAuthService.isLoggedIn).toHaveBeenCalled();
+    expect(mockAuthService.hasRole).toHaveBeenCalledWith('parent');
   });
 
   it('should redirect to home when user is logged in but does not have the required role', () => {
     // Arrange
-    authService.isLoggedIn.and.returnValue(true);
-    authService.hasRole.and.returnValue(false);
+    jest.spyOn(mockAuthService, 'isLoggedIn').mockReturnValue(true);
+    jest.spyOn(mockAuthService, 'hasRole').mockReturnValue(false);
 
-    const navigateSpy = spyOn(router, 'createUrlTree');
-    navigateSpy.and.returnValue({} as UrlTree);
+    const urlTree = {} as UrlTree;
+    const createUrlTreeSpy = jest.spyOn(router, 'createUrlTree').mockReturnValue(urlTree);
 
     const route = new ActivatedRouteSnapshot();
     route.data = { role: 'parent' };
@@ -88,31 +87,33 @@ describe('AuthGuard', () => {
     const state = { url: '/children' } as RouterStateSnapshot;
 
     // Act
-    guard.canActivate(route, state);
+    const result = guard.canActivate(route, state);
 
     // Assert
-    expect(authService.isLoggedIn).toHaveBeenCalled();
-    expect(authService.hasRole).toHaveBeenCalledWith('parent');
-    expect(navigateSpy).toHaveBeenCalledWith(['/home']);
+    expect(mockAuthService.isLoggedIn).toHaveBeenCalled();
+    expect(mockAuthService.hasRole).toHaveBeenCalledWith('parent');
+    expect(createUrlTreeSpy).toHaveBeenCalledWith(['/home']);
+    expect(result).toBe(urlTree);
   });
 
   it('should redirect to login when user is not logged in', () => {
     // Arrange
-    authService.isLoggedIn.and.returnValue(false);
+    jest.spyOn(mockAuthService, 'isLoggedIn').mockReturnValue(false);
 
-    const navigateSpy = spyOn(router, 'createUrlTree');
-    navigateSpy.and.returnValue({} as UrlTree);
+    const urlTree = {} as UrlTree;
+    const createUrlTreeSpy = jest.spyOn(router, 'createUrlTree').mockReturnValue(urlTree);
 
     const route = new ActivatedRouteSnapshot();
     const state = { url: '/home' } as RouterStateSnapshot;
 
     // Act
-    guard.canActivate(route, state);
+    const result = guard.canActivate(route, state);
 
     // Assert
-    expect(authService.isLoggedIn).toHaveBeenCalled();
-    expect(navigateSpy).toHaveBeenCalledWith(['/login'], {
+    expect(mockAuthService.isLoggedIn).toHaveBeenCalled();
+    expect(createUrlTreeSpy).toHaveBeenCalledWith(['/login'], {
       queryParams: { returnUrl: '/home' },
     });
+    expect(result).toBe(urlTree);
   });
 });

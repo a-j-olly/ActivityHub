@@ -2,71 +2,69 @@
 
 ## 1. Project Setup & Environment Configuration
 
-- [*] **Repository Structure**
-  - [*] Create a new repository.
-  - [*] Create two main folders: `/frontend` and `/backend`.
-  - [*] Add a root-level `README.md` with project overview and tech stack.
-- [*] **Backend Initial Setup**
-  - [*] Set up a Python virtual environment.
-  - [*] Initialize a minimal Flask project with an `app.py` file.
-  - [*] Implement a “Hello World” endpoint in Flask.
-  - [*] Create a `requirements.txt` including Flask and boto3.
-- [*] **Frontend Initial Setup**
-  - [*] Scaffold a new Angular project using Angular CLI inside `/frontend`.
-  - [*] Set up Angular routing with a basic home component.
-  - [*] Verify Angular app runs with `ng serve`.
+- [x] **Repository Structure**
+  - [x] Create a new repository.
+  - [x] Create two main folders: `/frontend` and `/backend`.
+  - [x] Add a root-level `README.md` with project overview and tech stack.
+- [x] **Backend Initial Setup**
+  - [x] Set up a Python virtual environment.
+  - [x] Initialize a minimal Flask project with an `app.py` file.
+  - [x] Implement a “Hello World” endpoint in Flask.
+  - [x] Create a `requirements.txt` including Flask and boto3.
+- [x] **Frontend Initial Setup**
+  - [x] Scaffold a new Angular project using Angular CLI inside `/frontend`.
+  - [x] Set up Angular routing with a basic home component.
+  - [x] Verify Angular app runs with `ng serve`.
 
 ## 2. AWS Infrastructure Setup with Terraform
 
-- [*] **AWS Resources Provisioning**
-  - [*] Write Terraform config to create an AWS Cognito User Pool.
-  - [*] Provision a DynamoDB table (single-table design, name: `ActivityHub`).
-  - [*] Create two S3 buckets:
-    - [*] `activityhub-media-raw`
-    - [*] `activityhub-media-processed`
-  - [*] Set up AWS API Gateway for Lambda integration.
-  - [*] (Optional) Add a placeholder for an AWS Lambda function.
-- [*] **IAM & Environment Management**
-  - [*] Create necessary IAM roles and policies for Lambda/API Gateway to access DynamoDB and S3.
-  - [*] Configure Terraform for multiple environments (staging and production).
+- [x] **AWS Resources Provisioning**
+  - [x] Write Terraform config to create an AWS Cognito User Pool.
+  - [x] Provision a DynamoDB table (single-table design, name: `ActivityHub`).
+  - [x] Create two S3 buckets:
+    - [x] `activityhub-media-raw`
+    - [x] `activityhub-media-processed`
+  - [x] Set up AWS API Gateway for Lambda integration.
+  - [x] (Optional) Add a placeholder for an AWS Lambda function.
+- [x] **IAM & Environment Management**
+  - [x] Create necessary IAM roles and policies for Lambda/API Gateway to access DynamoDB and S3.
+  - [x] Configure Terraform for multiple environments (staging and production).
 
 ## 3. Flask Back-End Development
 
-- [*] **Project Structure**
-  - [*] Organize backend folders: routes, models, utilities.
-  - [*] Create a `config.py` for environment variables and AWS settings.
-- [*] **User Management Endpoints**
-  - [*] Implement `POST /register` for user registration.
-  - [*] Implement `POST /login` for user authentication.
-  - [*] Create a JWT token issuance mechanism.
-- [*] **Error Handling**
-  - [*] Add error handling for 400, 401, 403, 404, and 500 status codes.
-- [*] **Wiring**
-  - [*] Wire all routes in the main app entry point.
+- [x] **Project Structure**
+  - [x] Organize backend folders: routes, models, utilities.
+  - [x] Create a `config.py` for environment variables and AWS settings.
+- [x] **User Management Endpoints**
+  - [x] Implement `POST /register` for user registration.
+  - [x] Implement `POST /login` for user authentication.
+  - [x] Create a JWT token issuance mechanism.
+- [x] **Error Handling**
+  - [x] Add error handling for 400, 401, 403, 404, and 500 status codes.
+- [x] **Wiring**
+  - [x] Wire all routes in the main app entry point.
 
 ## 4. DynamoDB Integration in Flask
 
-- [*] **DynamoDB Utility Module**
-  - [*] Create a module (e.g., `database.py`) for CRUD operations.
-- [*] **Enhance Endpoints**
-  - [*] Update `/register` to save new user data in DynamoDB.
-  - [*] Implement `GET /user/<userId>` to retrieve user profiles from DynamoDB.
-- [-] **Testing**
-  - [-] Test endpoints with a local/test DynamoDB instance.
+- [x] **DynamoDB Utility Module**
+  - [x] Create a module (e.g., `database.py`) for CRUD operations.
+- [x] **Enhance Endpoints**
+  - [x] Update `/register` to save new user data in DynamoDB.
+  - [x] Implement `GET /user/<userId>` to retrieve user profiles from DynamoDB.
 
 ## 5. Angular Front-End Development
 
-- [*] **Core Components**
-  - [*] Create a login component with email/password form.
-  - [*] Create a registration component.
-  - [*] Create a home/dashboard component.
-- [*] **Service Integration**
-  - [*] Develop an `AuthService` to handle registration and login API calls.
-- [*] **Routing**
-  - [*] Set up Angular routing for navigation between login, registration, and home.
-- [*] **JWT Handling**
-  - [*] Integrate login form to call backend `/login` endpoint.
-  - [*] Securely store and manage JWT tokens.
+- [x] **Core Components**
+  - [x] Create a login component with email/password form.
+  - [x] Create a registration component.
+  - [x] Create a home/dashboard component.
+- [x] **Service Integration**
+  - [x] Develop an `AuthService` to handle registration and login API calls.
+- [x] **Routing**
+  - [x] Set up Angular routing for navigation between login, registration, and home.
+- [x] **JWT Handling**
+  - [x] Integrate login form to call backend `/login` endpoint.
+  - [x] Securely store and manage JWT tokens.
 
 ## 6. AWS Cognito Integration for Authentication
 

@@ -1,9 +1,4 @@
-import {
-  ComponentFixture,
-  TestBed,
-  fakeAsync,
-  tick,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
@@ -11,34 +6,40 @@ import { of, throwError } from 'rxjs';
 
 import { RegisterComponent } from './register.component';
 import { AuthService } from '../../services/auth.service';
+import { LoginComponent } from '../login/login.component';
 
 describe('RegisterComponent', () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let mockAuthService: Partial<AuthService>;
   let router: Router;
 
   beforeEach(async () => {
-    // Create AuthService spy with the methods we'll use
-    const spy = jasmine.createSpyObj('AuthService', ['register', 'isLoggedIn']);
+    // Create AuthService mock with the methods we'll use
+    mockAuthService = {
+      register: jest.fn(),
+      isLoggedIn: jest.fn().mockReturnValue(false)
+    };
 
     await TestBed.configureTestingModule({
       declarations: [RegisterComponent],
-      imports: [ReactiveFormsModule, RouterTestingModule],
-      providers: [{ provide: AuthService, useValue: spy }],
+      imports: [
+        ReactiveFormsModule, 
+        // Add mock routes to handle navigation
+        RouterTestingModule.withRoutes([
+          { path: 'login', component: {} as any }, // Mock component
+          { path: 'home', component: {} as any }   // Mock component
+        ])
+      ],
+      providers: [{ provide: AuthService, useValue: mockAuthService }],
     }).compileComponents();
 
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     router = TestBed.inject(Router);
   });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;
-
-    // Initialize isLoggedIn to return false by default
-    authServiceSpy.isLoggedIn.and.returnValue(false);
-
     fixture.detectChanges();
   });
 
@@ -60,8 +61,8 @@ describe('RegisterComponent', () => {
     fixture.destroy();
 
     // Arrange - set up before creating component
-    authServiceSpy.isLoggedIn.and.returnValue(true);
-    const navigateSpy = spyOn(router, 'navigate');
+    (mockAuthService.isLoggedIn as jest.Mock).mockReturnValue(true);
+    const navigateSpy = jest.spyOn(router, 'navigate');
 
     // Create component again and trigger lifecycle hooks
     fixture = TestBed.createComponent(RegisterComponent);
@@ -123,13 +124,13 @@ describe('RegisterComponent', () => {
     component.onSubmit();
 
     // Assert
-    expect(component.submitted).toBeTrue();
-    expect(authServiceSpy.register).not.toHaveBeenCalled();
+    expect(component.submitted).toBe(true);
+    expect(mockAuthService.register).not.toHaveBeenCalled();
   });
 
   it('should call auth service register when form is valid', () => {
     // Arrange
-    authServiceSpy.register.and.returnValue(
+    (mockAuthService.register as jest.Mock).mockReturnValue(
       of({
         message: 'Registration successful',
         user: {
@@ -152,7 +153,7 @@ describe('RegisterComponent', () => {
     component.onSubmit();
 
     // Assert
-    expect(authServiceSpy.register).toHaveBeenCalledWith(
+    expect(mockAuthService.register).toHaveBeenCalledWith(
       'test@example.com',
       'Test User',
       'password123',
@@ -164,7 +165,7 @@ describe('RegisterComponent', () => {
 
   it('should navigate to login after successful registration', fakeAsync(() => {
     // Arrange
-    authServiceSpy.register.and.returnValue(
+    (mockAuthService.register as jest.Mock).mockReturnValue(
       of({
         message: 'Registration successful',
         user: {
@@ -177,7 +178,7 @@ describe('RegisterComponent', () => {
       })
     );
 
-    const navigateSpy = spyOn(router, 'navigate');
+    const navigateSpy = jest.spyOn(router, 'navigate');
 
     component.registerForm.controls['name'].setValue('Test User');
     component.registerForm.controls['email'].setValue('test@example.com');
@@ -186,8 +187,8 @@ describe('RegisterComponent', () => {
 
     // Act
     component.onSubmit();
-
-    // Wait for the setTimeout delay
+    
+    // Fast-forward the setTimeout
     tick(1500);
 
     // Assert
@@ -197,7 +198,7 @@ describe('RegisterComponent', () => {
   it('should handle registration error', () => {
     // Arrange
     const errorMessage = 'Email already exists';
-    authServiceSpy.register.and.returnValue(throwError(errorMessage));
+    (mockAuthService.register as jest.Mock).mockReturnValue(throwError(() => errorMessage));
 
     component.registerForm.controls['name'].setValue('Test User');
     component.registerForm.controls['email'].setValue('test@example.com');
@@ -210,13 +211,13 @@ describe('RegisterComponent', () => {
     // Assert
     expect(component.error).toBe(errorMessage);
     expect(component.success).toBe('');
-    expect(component.loading).toBeFalse();
+    expect(component.loading).toBe(false);
   });
 
   // DOM Testing
   it('should display success message when registration succeeds', () => {
     // Arrange
-    authServiceSpy.register.and.returnValue(
+    (mockAuthService.register as jest.Mock).mockReturnValue(
       of({
         message: 'Registration successful',
         user: {
@@ -239,8 +240,7 @@ describe('RegisterComponent', () => {
     fixture.detectChanges();
 
     // Assert
-    const successElement =
-      fixture.nativeElement.querySelector('.alert-success');
+    const successElement = fixture.nativeElement.querySelector('.alert-success');
     expect(successElement.textContent).toContain('Registration successful');
   });
 

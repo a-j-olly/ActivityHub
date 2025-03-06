@@ -13,7 +13,7 @@ class DefaultConfig:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     
     # AWS configuration
-    AWS_REGION = os.environ.get('AWS_REGION', 'us-west-2')
+    AWS_REGION = os.environ.get('AWS_REGION', 'eu-west-2')
     
     # DynamoDB configuration
     DYNAMODB_TABLE = os.environ.get('DYNAMODB_TABLE', 'ActivityHub')

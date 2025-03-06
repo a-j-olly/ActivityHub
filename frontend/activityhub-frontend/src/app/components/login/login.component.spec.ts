@@ -11,18 +11,21 @@ import { AuthService } from '../../services/auth.service';
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let mockAuthService: Partial<AuthService>;
   let router: Router;
 
   beforeEach(async () => {
-    // Create AuthService spy with the methods we'll use
-    const spy = jasmine.createSpyObj('AuthService', ['login', 'isLoggedIn']);
+    // Create AuthService mock with the methods we'll use
+    mockAuthService = {
+      login: jest.fn(),
+      isLoggedIn: jest.fn().mockReturnValue(false)
+    };
 
     await TestBed.configureTestingModule({
       declarations: [LoginComponent],
       imports: [ReactiveFormsModule, RouterTestingModule],
       providers: [
-        { provide: AuthService, useValue: spy },
+        { provide: AuthService, useValue: mockAuthService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -34,17 +37,12 @@ describe('LoginComponent', () => {
       ],
     }).compileComponents();
 
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     router = TestBed.inject(Router);
   });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
-
-    // Initialize isLoggedIn to return false by default
-    authServiceSpy.isLoggedIn.and.returnValue(false);
-
     fixture.detectChanges();
   });
 
@@ -63,8 +61,8 @@ describe('LoginComponent', () => {
     fixture.destroy();
 
     // Arrange - set up before creating component
-    authServiceSpy.isLoggedIn.and.returnValue(true);
-    const navigateSpy = spyOn(router, 'navigate');
+    (mockAuthService.isLoggedIn as jest.Mock).mockReturnValue(true);
+    const navigateSpy = jest.spyOn(router, 'navigate');
 
     // Create component again and trigger lifecycle hooks
     fixture = TestBed.createComponent(LoginComponent);
@@ -115,7 +113,7 @@ describe('LoginComponent', () => {
 
   it('should call auth service login when form is valid', () => {
     // Arrange
-    authServiceSpy.login.and.returnValue(
+    (mockAuthService.login as jest.Mock).mockReturnValue(
       of({
         message: 'Login successful',
         user: {
@@ -125,11 +123,15 @@ describe('LoginComponent', () => {
           role: 'parent',
           created_at: 1645123456,
         },
-        token: 'mock-token',
+        tokens: {
+          id_token: 'mock-id-token',
+          access_token: 'mock-access-token',
+          expires_in: 3600
+        }
       })
     );
 
-    const navigateSpy = spyOn(router, 'navigate');
+    const navigateSpy = jest.spyOn(router, 'navigate');
 
     component.loginForm.controls['email'].setValue('test@example.com');
     component.loginForm.controls['password'].setValue('password123');
@@ -138,7 +140,7 @@ describe('LoginComponent', () => {
     component.onSubmit();
 
     // Assert
-    expect(authServiceSpy.login).toHaveBeenCalledWith(
+    expect(mockAuthService.login).toHaveBeenCalledWith(
       'test@example.com',
       'password123'
     );
@@ -148,7 +150,7 @@ describe('LoginComponent', () => {
   it('should handle login error', () => {
     // Arrange
     const errorMessage = 'Invalid email or password';
-    authServiceSpy.login.and.returnValue(throwError(errorMessage));
+    (mockAuthService.login as jest.Mock).mockReturnValue(throwError(() => errorMessage));
 
     component.loginForm.controls['email'].setValue('test@example.com');
     component.loginForm.controls['password'].setValue('wrong-password');
@@ -157,17 +159,17 @@ describe('LoginComponent', () => {
     component.onSubmit();
 
     // Assert
-    expect(authServiceSpy.login).toHaveBeenCalledWith(
+    expect(mockAuthService.login).toHaveBeenCalledWith(
       'test@example.com',
       'wrong-password'
     );
     expect(component.error).toBe(errorMessage);
-    expect(component.loading).toBeFalse();
+    expect(component.loading).toBeFalsy();
   });
 
   it('should navigate to the return URL after successful login', () => {
     // Arrange
-    authServiceSpy.login.and.returnValue(
+    (mockAuthService.login as jest.Mock).mockReturnValue(
       of({
         message: 'Login successful',
         user: {
@@ -177,11 +179,15 @@ describe('LoginComponent', () => {
           role: 'parent',
           created_at: 1645123456,
         },
-        token: 'mock-token',
+        tokens: {
+          id_token: 'mock-id-token',
+          access_token: 'mock-access-token',
+          expires_in: 3600
+        }
       })
     );
 
-    const navigateSpy = spyOn(router, 'navigate');
+    const navigateSpy = jest.spyOn(router, 'navigate');
     component.returnUrl = '/challenges';
 
     component.loginForm.controls['email'].setValue('test@example.com');
@@ -215,7 +221,7 @@ describe('LoginComponent', () => {
     const spinnerElement =
       fixture.nativeElement.querySelector('.spinner-border');
 
-    expect(buttonElement.disabled).toBeTrue();
+    expect(buttonElement.disabled).toBe(true);
     expect(spinnerElement).toBeTruthy();
   });
 });

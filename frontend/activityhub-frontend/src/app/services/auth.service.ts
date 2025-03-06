@@ -1,22 +1,36 @@
+// src/app/services/auth.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, throwError, from } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
+import {
+  signUp,
+  signIn,
+  signOut,
+  fetchAuthSession,
+  getCurrentUser,
+  fetchUserAttributes,
+  JWT,
+} from '@aws-amplify/auth';
 
 export interface User {
   user_id: string;
   email: string;
   name: string;
   role: string;
-  created_at: number;
+  created_at?: number;
 }
 
 export interface AuthResponse {
   message: string;
   user: User;
-  token?: string;
+  tokens?: {
+    id_token: string;
+    access_token: string;
+    expires_in: number;
+  };
 }
 
 @Injectable({
@@ -26,7 +40,7 @@ export class AuthService {
   private apiUrl = environment.apiUrl;
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser: Observable<User | null>;
-  private tokenExpirationTimer: any;
+  private tokenRefreshTimeout: any;
 
   constructor(private http: HttpClient, private router: Router) {
     // Try to get user from localStorage on service initialization
@@ -35,6 +49,64 @@ export class AuthService {
       storedUser ? JSON.parse(storedUser) : null
     );
     this.currentUser = this.currentUserSubject.asObservable();
+
+    // Check if there's a valid session on init
+    this.checkCurrentAuthentication();
+
+    // Set up token refresh interval
+    this.setupTokenRefreshInterval();
+  }
+
+  private async checkCurrentAuthentication(): Promise<void> {
+    try {
+      // Try to get the current session
+      const session = await fetchAuthSession();
+
+      if (!session.tokens) {
+        return;
+      }
+
+      // Get the current authenticated user
+      const userResult = await getCurrentUser();
+      const userAttributes = await fetchUserAttributes();
+
+      // Create user object from attributes
+      const user: User = {
+        user_id: userResult.userId,
+        email: userAttributes.email || '',
+        name: userAttributes.name || '',
+        role: userAttributes['custom:role'] || 'user',
+      };
+
+      // Store user in local storage
+      localStorage.setItem('currentUser', JSON.stringify(user));
+
+      // Store tokens
+      localStorage.setItem(
+        'id_token',
+        (session.tokens.idToken as JWT).toString()
+      );
+      localStorage.setItem(
+        'access_token',
+        session.tokens.accessToken.toString()
+      );
+
+      // Set expiration time (typically 1 hour)
+      const expiry = new Date();
+      expiry.setHours(expiry.getHours() + 1);
+      localStorage.setItem('token_expiration', expiry.toISOString());
+
+      // Update current user
+      this.currentUserSubject.next(user);
+    } catch (error) {
+      console.log('No active session found or error fetching session');
+      // Clear any potentially stale data
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('id_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('token_expiration');
+      this.currentUserSubject.next(null);
+    }
   }
 
   public get currentUserValue(): User | null {
@@ -48,58 +120,149 @@ export class AuthService {
     role: string = 'parent',
     parent_id?: string
   ): Observable<AuthResponse> {
-    const registrationData: any = {
+    // Prepare attributes
+    const userAttributes: Record<string, string> = {
       email,
       name,
-      password,
-      role,
+      'custom:role': role,
     };
 
-    // Only include parent_id if it's provided and role is 'child'
     if (role === 'child' && parent_id) {
-      registrationData.parent_id = parent_id;
+      userAttributes['custom:parentId'] = parent_id;
     }
 
-    return this.http
-      .post<AuthResponse>(`${this.apiUrl}/register`, registrationData)
-      .pipe(catchError(this.handleError));
+    // Use signUp from v6
+    return from(
+      signUp({
+        username: email,
+        password,
+        options: {
+          userAttributes,
+        },
+      })
+    ).pipe(
+      map((response) => {
+        // Return formatted response
+        return {
+          message: 'User registered successfully',
+          user: {
+            user_id: response.userId as string,
+            email,
+            name,
+            role,
+          },
+        };
+      }),
+      catchError((error) => {
+        console.error('Registration error:', error);
+        return throwError(() => error.message || 'Registration failed');
+      })
+    );
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${this.apiUrl}/login`, { email, password })
-      .pipe(
-        tap((response) => {
-          if (response && response.token) {
-            this.setSession(response);
+    // Create a proper Observable that handles all async operations
+    return from(
+      // This IIFE handles all the async operations
+      (async () => {
+        try {
+          // 1. Sign in with username/password
+          await signIn({ username: email, password });
+
+          try {
+            // 2. Get session with tokens
+            const session = await fetchAuthSession();
+
+            if (!session.tokens) {
+              throw new Error('No tokens in session');
+            }
+
+            // 3. Get user details
+            const userResult = await getCurrentUser();
+            const userAttributes = await fetchUserAttributes();
+
+            // 4. Create user object
+            const user: User = {
+              user_id: userResult.userId,
+              email: userAttributes.email || email,
+              name: userAttributes.name || '',
+              role: userAttributes['custom:role'] || 'user',
+            };
+
+            // 5. Store in local storage
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem(
+              'id_token',
+              (session.tokens.idToken as JWT).toString()
+            );
+            localStorage.setItem(
+              'access_token',
+              session.tokens.accessToken.toString()
+            );
+
+            // 6. Set token expiration (typically 1 hour)
+            const expiry = new Date();
+            expiry.setHours(expiry.getHours() + 1);
+            localStorage.setItem('token_expiration', expiry.toISOString());
+
+            // 7. Update current user
+            this.currentUserSubject.next(user);
+
+            // 8. Return success response
+            return {
+              message: 'Login successful',
+              user,
+              tokens: {
+                id_token: (session.tokens.idToken as JWT).toString(),
+                access_token: session.tokens.accessToken.toString(),
+                expires_in: 3600, // 1 hour in seconds
+              },
+            } as AuthResponse;
+          } catch (sessionError) {
+            console.error('Session error:', sessionError);
+            throw sessionError;
           }
-        }),
-        catchError(this.handleError)
-      );
+        } catch (error: any) {
+          console.error('Login error:', error);
+          throw new Error(error.message || 'Login failed');
+        }
+      })()
+    ).pipe(
+      catchError((error) => throwError(() => error.message || 'Login failed'))
+    );
   }
 
-  logout(): void {
-    // Clear authentication data
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
-    localStorage.removeItem('tokenExpiration');
+  async logout(): Promise<void> {
+    try {
+      // Sign out from Cognito
+      await signOut();
 
-    // Clear timeout if it exists
-    if (this.tokenExpirationTimer) {
-      clearTimeout(this.tokenExpirationTimer);
+      // Clear local storage
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('id_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('token_expiration');
+
+      // Clear token refresh timer
+      if (this.tokenRefreshTimeout) {
+        clearTimeout(this.tokenRefreshTimeout);
+        this.tokenRefreshTimeout = null;
+      }
+
+      // Update the current user subject
+      this.currentUserSubject.next(null);
+
+      // Navigate to login page
+      this.router.navigate(['/login']);
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-
-    // Update the current user subject
-    this.currentUserSubject.next(null);
-
-    // Navigate to login page
-    this.router.navigate(['/login']);
   }
 
   // Check if user is logged in
   isLoggedIn(): boolean {
-    const token = localStorage.getItem('token');
-    const expiration = localStorage.getItem('tokenExpiration');
+    const token = localStorage.getItem('access_token');
+    const expiration = localStorage.getItem('token_expiration');
 
     if (!token || !expiration) {
       return false;
@@ -108,7 +271,7 @@ export class AuthService {
     // Check if token is expired
     const expirationDate = new Date(expiration);
     if (expirationDate <= new Date()) {
-      this.logout();
+      this.logout(); // Automatically logout if token is expired
       return false;
     }
 
@@ -121,63 +284,63 @@ export class AuthService {
     return currentUser !== null && currentUser.role === role;
   }
 
-  // Refresh token (if needed in the future)
-  refreshToken(): Observable<any> {
-    // This would be implemented when a token refresh endpoint is available
-    // For now, just log the user out if their token is expired
-    return throwError('Token refresh not implemented');
+  // Refresh token - in v6 this uses the forceRefresh flag
+  // src/app/services/auth.service.ts - refreshTokens method
+  refreshTokens(): Observable<any> {
+    return from(fetchAuthSession({ forceRefresh: true })).pipe(
+      map((session) => {
+        if (!session.tokens) {
+          throw new Error('No tokens in refreshed session');
+        }
+
+        // Update tokens in local storage
+        localStorage.setItem(
+          'id_token',
+          (session.tokens.idToken as JWT).toString()
+        );
+        localStorage.setItem(
+          'access_token',
+          session.tokens.accessToken.toString()
+        );
+
+        // Update expiration time
+        const expiry = new Date();
+        expiry.setHours(expiry.getHours() + 1);
+        localStorage.setItem('token_expiration', expiry.toISOString());
+
+        // Return new tokens
+        return {
+          id_token: (session.tokens.idToken as JWT).toString(),
+          access_token: session.tokens.accessToken.toString(),
+          expires_in: 3600, // 1 hour in seconds
+        };
+      }),
+      catchError((error) => {
+        console.error('Token refresh error:', error);
+        this.logout();
+        return throwError(() => 'Session expired. Please log in again.');
+      })
+    );
   }
 
-  // Private helper methods
-  private setSession(authResult: AuthResponse): void {
-    // Store the user in local storage
-    localStorage.setItem('currentUser', JSON.stringify(authResult.user));
-    localStorage.setItem('token', authResult.token!);
-
-    // Calculate token expiration (assuming 1 hour from now)
-    const expirationDate = new Date(new Date().getTime() + 60 * 60 * 1000);
-    localStorage.setItem('tokenExpiration', expirationDate.toISOString());
-
-    // Update the current user subject
-    this.currentUserSubject.next(authResult.user);
-
-    // Set timer for auto logout
-    this.autoLogout(60 * 60 * 1000); // 1 hour
-  }
-
-  private autoLogout(expirationDuration: number): void {
-    this.tokenExpirationTimer = setTimeout(() => {
-      this.logout();
-    }, expirationDuration);
-  }
-
-  private handleError(error: any): Observable<never> {
-    let errorMessage = 'An unknown error occurred!';
-
-    if (error.error instanceof ErrorEvent) {
-      // Client-side error
-      errorMessage = `Error: ${error.error.message}`;
-    } else if (error.error && error.error.message) {
-      // Server-side error with a message
-      errorMessage = error.error.message;
-    } else if (error.status) {
-      // Server-side error with a status code but no message
-      switch (error.status) {
-        case 400:
-          errorMessage = 'Bad request';
-          break;
-        case 401:
-          errorMessage = 'Unauthorized';
-          break;
-        case 404:
-          errorMessage = 'Not found';
-          break;
-        default:
-          errorMessage = `Error Code: ${error.status}`;
-      }
+  // Set up a periodic token refresh
+  private setupTokenRefreshInterval(): void {
+    // Clear any existing interval
+    if (this.tokenRefreshTimeout) {
+      clearTimeout(this.tokenRefreshTimeout);
     }
 
-    console.error('Authentication error:', error);
-    return throwError(errorMessage);
+    // We'll refresh the token every 45 minutes (assuming 1hr expiry)
+    const refreshInterval = 45 * 60 * 1000; // 45 minutes in milliseconds
+
+    this.tokenRefreshTimeout = setInterval(() => {
+      // Only refresh if user is logged in
+      if (this.isLoggedIn()) {
+        this.refreshTokens().subscribe({
+          next: () => console.log('Token refreshed successfully'),
+          error: (err) => console.error('Failed to refresh token:', err),
+        });
+      }
+    }, refreshInterval);
   }
 }

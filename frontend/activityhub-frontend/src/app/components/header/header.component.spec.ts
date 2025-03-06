@@ -9,8 +9,9 @@ import { AuthService, User } from '../../services/auth.service';
 describe('HeaderComponent', () => {
   let component: HeaderComponent;
   let fixture: ComponentFixture<HeaderComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
+  let authServiceSpy: jest.SpyInstance;
   let currentUserSubject: BehaviorSubject<User | null>;
+  let mockAuthService: Partial<AuthService>;
 
   // Sample user data
   const parentUser: User = {
@@ -33,23 +34,21 @@ describe('HeaderComponent', () => {
     // Create a mock currentUser observable
     currentUserSubject = new BehaviorSubject<User | null>(null);
     
-    // Create AuthService spy with the methods we'll use
-    const spy = jasmine.createSpyObj('AuthService', ['logout']);
-    // Set up the currentUser property to use our mock subject
-    Object.defineProperty(spy, 'currentUser', {
-      get: () => currentUserSubject.asObservable()
-    });
+    // Create AuthService mock with the methods we'll use
+    mockAuthService = {
+      logout: jest.fn(),
+      currentUser: currentUserSubject.asObservable()
+    };
 
     await TestBed.configureTestingModule({
-      declarations: [ HeaderComponent ],
-      imports: [ RouterTestingModule ],
+      declarations: [HeaderComponent],
+      imports: [RouterTestingModule],
       providers: [
-        { provide: AuthService, useValue: spy }
+        { provide: AuthService, useValue: mockAuthService }
       ]
-    })
-    .compileComponents();
+    }).compileComponents();
 
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    authServiceSpy = jest.spyOn(mockAuthService, 'logout');
   });
 
   beforeEach(() => {
@@ -80,7 +79,7 @@ describe('HeaderComponent', () => {
     component.logout();
     
     // Assert
-    expect(authServiceSpy.logout).toHaveBeenCalled();
+    expect(mockAuthService.logout).toHaveBeenCalled();
   });
 
   // DOM Testing
@@ -116,10 +115,14 @@ describe('HeaderComponent', () => {
     
     // Assert
     const navLinks = fixture.debugElement.queryAll(By.css('.nav-links a'));
-    const linkHrefs = navLinks.map(link => link.properties['href']);
+    // Extract only the path portion from the URLs
+    const linkPaths = navLinks.map(link => {
+      const href = link.properties['href'];
+      return href.replace(/^http:\/\/[^\/]+/, '');
+    });
     
-    expect(linkHrefs).toContain('http://localhost:9876/children');
-    expect(linkHrefs).not.toContain('http://localhost:9876/submissions');
+    expect(linkPaths).toContain('/children');
+    expect(linkPaths).not.toContain('/submissions');
   });
 
   it('should show child-specific links when child is logged in', () => {
@@ -129,10 +132,14 @@ describe('HeaderComponent', () => {
     
     // Assert
     const navLinks = fixture.debugElement.queryAll(By.css('.nav-links a'));
-    const linkHrefs = navLinks.map(link => link.properties['href']);
+    // Extract only the path portion from the URLs
+    const linkPaths = navLinks.map(link => {
+      const href = link.properties['href'];
+      return href.replace(/^http:\/\/[^\/]+/, '');
+    });
     
-    expect(linkHrefs).toContain('http://localhost:9876/submissions');
-    expect(linkHrefs).not.toContain('http://localhost:9876/children');
+    expect(linkPaths).toContain('/submissions');
+    expect(linkPaths).not.toContain('/children');
   });
 
   it('should show logout button when user is logged in', () => {

@@ -7,9 +7,8 @@ describe('ChallengeListComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ ChallengeListComponent ]
-    })
-    .compileComponents();
+      declarations: [ChallengeListComponent]
+    }).compileComponents();
   });
 
   beforeEach(() => {
